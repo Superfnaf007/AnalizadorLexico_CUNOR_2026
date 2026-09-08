@@ -1,0 +1,1 @@
+# AnalizadorLexico_CUNOR_2026
