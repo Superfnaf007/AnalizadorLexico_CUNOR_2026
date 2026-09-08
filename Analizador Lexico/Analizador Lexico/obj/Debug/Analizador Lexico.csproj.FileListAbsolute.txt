@@ -1,0 +1,10 @@
+F:\Escritorio\visual estudio projectos\Analizador Lexico\Analizador Lexico\bin\Debug\Analizador Lexico.exe.config
+F:\Escritorio\visual estudio projectos\Analizador Lexico\Analizador Lexico\bin\Debug\Analizador Lexico.exe
+F:\Escritorio\visual estudio projectos\Analizador Lexico\Analizador Lexico\bin\Debug\Analizador Lexico.pdb
+F:\Escritorio\visual estudio projectos\Analizador Lexico\Analizador Lexico\obj\Debug\Analizador Lexico.csproj.AssemblyReference.cache
+F:\Escritorio\visual estudio projectos\Analizador Lexico\Analizador Lexico\obj\Debug\AnalizadorLexico.UI.FormPrincipal.resources
+F:\Escritorio\visual estudio projectos\Analizador Lexico\Analizador Lexico\obj\Debug\Analizador_Lexico.Properties.Resources.resources
+F:\Escritorio\visual estudio projectos\Analizador Lexico\Analizador Lexico\obj\Debug\Analizador Lexico.csproj.GenerateResource.cache
+F:\Escritorio\visual estudio projectos\Analizador Lexico\Analizador Lexico\obj\Debug\Analizador Lexico.csproj.CoreCompileInputs.cache
+F:\Escritorio\visual estudio projectos\Analizador Lexico\Analizador Lexico\obj\Debug\Analizador Lexico.exe
+F:\Escritorio\visual estudio projectos\Analizador Lexico\Analizador Lexico\obj\Debug\Analizador Lexico.pdb
