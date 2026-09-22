@@ -1,44 +1,59 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 
-public class TablaDeSimbolos
+namespace Entregable3
 {
-    private HashSet<string> palabrasReservadas;
-    private List<SimboloTabla> listaSimbolos;
-
-    public TablaDeSimbolos()
+    public class TablaDeSimbolos
     {
-        // Inicialización de las palabras reservadas del subconjunto de C# (Entregable 1)
-        palabrasReservadas = new HashSet<string>()
+        private List<SimboloTabla> listaSimbolos;
+        private string[] palabrasReservadas;
+        private int contadorId;
+
+        public TablaDeSimbolos()
         {
-            "abstract", "as", "base", "bool", "break", "byte", "case", "catch", "char",
-            "checked", "class", "const", "continue", "decimal", "default", "delegate",
-            "do", "double", "else", "enum", "event", "explicit", "extern", "false",
-            "finally", "fixed", "float", "for", "foreach", "goto", "if", "implicit",
-            "in", "int", "interface", "internal", "is", "lock", "long", "namespace",
-            "new", "null", "object", "operator", "out", "override", "params", "private",
-            "protected", "public", "readonly", "ref", "return", "sbyte", "sealed",
-            "short", "sizeof", "stackalloc", "static", "string", "struct", "switch",
-            "this", "throw", "true", "try", "typeof", "uint", "ulong", "unchecked",
-            "unsafe", "ushort", "using", "virtual", "void", "volatile", "while"
-        };
+            listaSimbolos = new List<SimboloTabla>();
+            contadorId = 1;
 
-        listaSimbolos = new List<SimboloTabla>();
-    }
+            palabrasReservadas = new string[]
+            {
+                "using", "namespace", "class", "public", "private", "protected",
+                "static", "void", "int", "double", "float", "string", "bool",
+                "if", "else", "while", "for", "foreach", "do", "switch", "case",
+                "default", "break", "continue", "return", "new",
+                "true", "false", "null", "char"
+            };
+        }
 
-    // Método para verificar si un identificador es una palabra reservada
-    public bool EsPalabraReservada(string lexema)
-    {
-        return palabrasReservadas.Contains(lexema);
-    }
+        public bool EsPalabraReservada(string lexema)
+        {
+            for (int i = 0; i < palabrasReservadas.Length; i++)
+            {
+                if (palabrasReservadas[i] == lexema)
+                    return true;
+            }
+            return false;
+        }
 
-    // Método para registrar un nuevo símbolo en la tabla
-    public void AgregarSimbolo(SimboloTabla simbolo)
-    {
-        listaSimbolos.Add(simbolo);
-    }
+        public void AgregarOActualizar(string nombre, string tipoToken, string tipoDato, int linea, int columna, string ambito)
+        {
+            if (EsPalabraReservada(nombre)) return;
 
-    public List<SimboloTabla> ObtenerSimbolos()
-    {
-        return listaSimbolos;
+            if (listaSimbolos.Any(s => s.Nombre == nombre)) return;
+
+            SimboloTabla nuevoSimbolo = new SimboloTabla(contadorId++, nombre, tipoToken, tipoDato, linea, columna, ambito);
+            listaSimbolos.Add(nuevoSimbolo);
+        }
+
+        public List<SimboloTabla> ObtenerSimbolos()
+        {
+            return listaSimbolos;
+        }
+
+        public void Limpiar()
+        {
+            listaSimbolos.Clear();
+            contadorId = 1;
+        }
     }
 }
