@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using AnalizadorLexico.Models;
 
 namespace AnalizadorLexico.Engine
@@ -10,21 +6,78 @@ namespace AnalizadorLexico.Engine
     public class AnalizadorLexico
     {
         private string codigoFuente;
-        public List<Token> TokensReconocidos { get; private set; }
-        public List<ErrorLexico> ErroresDetectados { get; private set; }
+        private int posicion;
+        private int lineaActual;
+        private int columnaActual;
+
+        private Token[] tokens;
+        private int contadorTokens;
+
+        private ErrorLexico[] errores;
+        private int contadorErrores;
+
         public TablaDeSimbolos TablaSimbolos { get; private set; }
 
         public AnalizadorLexico(string codigoFuente)
         {
-            this.codigoFuente = codigoFuente;
-            TokensReconocidos = new List<Token>();
-            ErroresDetectados = new List<ErrorLexico>();
+            this.codigoFuente = codigoFuente ?? string.Empty;
+            posicion = 0;
+            lineaActual = 1;
+            columnaActual = 1;
+
+            tokens = new Token[2000];
+            contadorTokens = 0;
+
+            errores = new ErrorLexico[500];
+            contadorErrores = 0;
+
             TablaSimbolos = new TablaDeSimbolos();
         }
 
+        public Token[] ObtenerTokens()
+        {
+            Token[] resultado = new Token[contadorTokens];
+            Array.Copy(tokens, resultado, contadorTokens);
+            return resultado;
+        }
+
+        public ErrorLexico[] ObtenerErrores()
+        {
+            ErrorLexico[] resultado = new ErrorLexico[contadorErrores];
+            Array.Copy(errores, resultado, contadorErrores);
+            return resultado;
+        }
+
+
         public void Escanear()
         {
-           
+            posicion = 0;
+            lineaActual = 1;
+            columnaActual = 1;
+            contadorTokens = 0;
+            contadorErrores = 0;
+            TablaSimbolos.Limpiar();
+
+            while (posicion < codigoFuente.Length)
+            {
+                char caracterActual = codigoFuente[posicion];
+
+                if (caracterActual == '\n')
+                {
+                    lineaActual++;
+                    columnaActual = 1;
+                    posicion++;
+                }
+                else if (caracterActual == '\r')
+                {
+                    posicion++;
+                }
+                else
+                {
+                    columnaActual++;
+                    posicion++;
+                }
+            }
         }
     }
 }
