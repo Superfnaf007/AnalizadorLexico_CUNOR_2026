@@ -1,0 +1,10 @@
+C:\Users\Laptop Alex\source\repos\Programacion 2\Entregable3\Entregable3\obj\Debug\Entregable3.csproj.AssemblyReference.cache
+C:\Users\Laptop Alex\source\repos\Programacion 2\Entregable3\Entregable3\obj\Debug\Entregable3.Form1.resources
+C:\Users\Laptop Alex\source\repos\Programacion 2\Entregable3\Entregable3\obj\Debug\Entregable3.Properties.Resources.resources
+C:\Users\Laptop Alex\source\repos\Programacion 2\Entregable3\Entregable3\obj\Debug\Entregable3.csproj.GenerateResource.cache
+C:\Users\Laptop Alex\source\repos\Programacion 2\Entregable3\Entregable3\obj\Debug\Entregable3.csproj.CoreCompileInputs.cache
+C:\Users\Laptop Alex\source\repos\Programacion 2\Entregable3\Entregable3\bin\Debug\Entregable3.exe.config
+C:\Users\Laptop Alex\source\repos\Programacion 2\Entregable3\Entregable3\bin\Debug\Entregable3.exe
+C:\Users\Laptop Alex\source\repos\Programacion 2\Entregable3\Entregable3\bin\Debug\Entregable3.pdb
+C:\Users\Laptop Alex\source\repos\Programacion 2\Entregable3\Entregable3\obj\Debug\Entregable3.exe
+C:\Users\Laptop Alex\source\repos\Programacion 2\Entregable3\Entregable3\obj\Debug\Entregable3.pdb
