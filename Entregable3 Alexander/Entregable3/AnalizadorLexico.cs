@@ -1,313 +1,225 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 
-namespace Entregable3
+public class AnalizadorLexico
 {
-    public class AnalizadorLexico
+    private string codigoFuente;
+    private int indice;
+    private int linea;
+    private int columna;
+
+    public List<Token> TokensReconocidos { get; private set; }
+    public List<ErrorLexico> ErroresDetectados { get; private set; }
+    public TablaDeSimbolos TablaSimbolos { get; private set; }
+
+    public AnalizadorLexico(string codigo)
     {
-        private string codigoFuente;
-        private int posicion;
-        private int lineaActual;
-        private int columnaActual;
+        codigoFuente = codigo ?? string.Empty;
+        indice = 0;
+        linea = 1;
+        columna = 1;
+        TokensReconocidos = new List<Token>();
+        ErroresDetectados = new List<ErrorLexico>();
+        TablaSimbolos = new TablaDeSimbolos();
+    }
 
-        public List<Token> TokensReconocidos { get; private set; }
-        public List<ErrorLexico> ErroresDetectados { get; private set; }
-        public TablaDeSimbolos TablaSimbolos { get; private set; }
+    private char Peek() => indice < codigoFuente.Length ? codigoFuente[indice] : '\0';
 
-        public AnalizadorLexico(string codigoFuente)
+    private char Advance()
+    {
+        char c = codigoFuente[indice++];
+        if (c == '\n')
         {
-            this.codigoFuente = codigoFuente ?? string.Empty;
-            posicion = 0;
-            lineaActual = 1;
-            columnaActual = 1;
-
-            TokensReconocidos = new List<Token>();
-            ErroresDetectados = new List<ErrorLexico>();
-            TablaSimbolos = new TablaDeSimbolos();
+            linea++;
+            columna = 1;
         }
-
-        public void Escanear()
+        else
         {
-            posicion = 0;
-            lineaActual = 1;
-            columnaActual = 1;
-            TokensReconocidos.Clear();
-            ErroresDetectados.Clear();
-            TablaSimbolos.Limpiar();
+            columna++;
+        }
+        return c;
+    }
 
-            while (posicion < codigoFuente.Length)
+    public void Escanear()
+    {
+        while (indice < codigoFuente.Length)
+        {
+            char actual = Peek();
+
+            // 1. Espacios en blanco y tabulaciones
+            if (char.IsWhiteSpace(actual))
             {
-                char caracterActual = codigoFuente[posicion];
+                Advance();
+                continue;
+            }
 
-                if (char.IsWhiteSpace(caracterActual))
+            // 2. Comentarios (Línea // o Bloque /* ... */)
+            if (actual == '/' && indice + 1 < codigoFuente.Length)
+            {
+                if (codigoFuente[indice + 1] == '/') // Comentario de línea
                 {
-                    if (caracterActual == '\n') { lineaActual++; columnaActual = 1; }
-                    else { columnaActual++; }
-                    posicion++;
+                    while (Peek() != '\n' && Peek() != '\0') Advance();
                     continue;
                 }
-
-                if (char.IsLetter(caracterActual) || caracterActual == '_')
+                else if (codigoFuente[indice + 1] == '*') // Comentario de bloque
                 {
-                    LeerIdentificadorOPalabraReservada();
+                    int inicioLinea = linea;
+                    int inicioCol = columna;
+                    Advance(); Advance(); // Consumir /*
+                    bool cerrado = false;
+                    while (indice < codigoFuente.Length)
+                    {
+                        if (Peek() == '*' && indice + 1 < codigoFuente.Length && codigoFuente[indice + 1] == '/')
+                        {
+                            Advance(); Advance(); // Consumir */
+                            cerrado = true;
+                            break;
+                        }
+                        Advance();
+                    }
+                    if (!cerrado)
+                    {
+                        ErroresDetectados.Add(new ErrorLexico("/*", "Comentario de bloque sin cerrar (ERR_COMENTARIO)", inicioLinea, inicioCol));
+                    }
+                    continue;
+                }
+            }
+
+            // 3. Identificadores y Palabras Reservadas
+            if (char.IsLetter(actual) || actual == '_')
+            {
+                int inicioCol = columna;
+                int inicioLinea = linea;
+                string lexema = "";
+                while (char.IsLetterOrDigit(Peek()) || Peek() == '_')
+                {
+                    lexema += Advance();
                 }
 
-                else if (char.IsDigit(caracterActual))
+                if (TablaSimbolos.EsPalabraReservada(lexema))
                 {
-                    LeerNumero();
+                    TokensReconocidos.Add(new Token(lexema, "TK_PALABRA_" + lexema.ToUpper(), inicioLinea, inicioCol));
                 }
-
-                else if (caracterActual == '"' || caracterActual == '\'')
-                {
-                    LeerCadenaOCaracter(caracterActual);
-                }
-
-                else if (caracterActual == '/')
-                {
-                    if (VerificarSiguiente('/')) { LeerComentarioLinea(); }
-                    else if (VerificarSiguiente('*')) { LeerComentarioBloque(); }
-                    else { LeerOperadorOSimbolo(); }
-                }
-
-                else if (EsSimboloValido(caracterActual))
-                {
-                    LeerOperadorOSimbolo();
-                }
-
                 else
                 {
-                    AgregarError(caracterActual.ToString(), "ERR_CAR: Carácter inválido");
-                    posicion++;
-                    columnaActual++;
+                    TokensReconocidos.Add(new Token(lexema, "TK_IDENTIFICADOR", inicioLinea, inicioCol));
+                    TablaSimbolos.AgregarSimbolo(new SimboloTabla(TablaSimbolos.ObtenerSimbolos().Count + 1, lexema, "TK_IDENTIFICADOR", "indefinido", inicioLinea, inicioCol, "global"));
                 }
-            }
-        }
-
-        private void LeerIdentificadorOPalabraReservada()
-        {
-            int inicioLinea = lineaActual;
-            int inicioColumna = columnaActual;
-            StringBuilder sb = new StringBuilder();
-
-            while (posicion < codigoFuente.Length &&
-                  (char.IsLetterOrDigit(codigoFuente[posicion]) || codigoFuente[posicion] == '_'))
-            {
-                sb.Append(codigoFuente[posicion]);
-                posicion++;
-                columnaActual++;
+                continue;
             }
 
-            string lexema = sb.ToString();
-
-            if (TablaSimbolos.EsPalabraReservada(lexema))
+            // 4. Números (Enteros y Decimales / Reales)
+            if (char.IsDigit(actual))
             {
-                AgregarToken(lexema, "TK_PALABRA_RESERVADA", inicioLinea, inicioColumna);
-            }
-            else
-            {
-                AgregarToken(lexema, "TK_IDENTIFICADOR", inicioLinea, inicioColumna);
-                TablaSimbolos.AgregarOActualizar(lexema, "TK_IDENTIFICADOR", null, inicioLinea, inicioColumna, "local");
-            }
-        }
+                int inicioCol = columna;
+                int inicioLinea = linea;
+                string lexema = "";
+                bool esDecimal = false;
 
-        private void LeerNumero()
-        {
-            int inicioLinea = lineaActual;
-            int inicioColumna = columnaActual;
-            StringBuilder sb = new StringBuilder();
-            bool esReal = false;
-            bool errorNum = false;
-
-            while (posicion < codigoFuente.Length &&
-                  (char.IsDigit(codigoFuente[posicion]) || codigoFuente[posicion] == '.'))
-            {
-                if (codigoFuente[posicion] == '.')
+                while (char.IsDigit(Peek()))
                 {
-                    if (esReal) { errorNum = true; }
-                    esReal = true;
+                    lexema += Advance();
                 }
-                sb.Append(codigoFuente[posicion]);
-                posicion++;
-                columnaActual++;
-            }
 
-            string lexema = sb.ToString();
-
-            if (lexema.EndsWith(".") || errorNum)
-            {
-                AgregarError(lexema, "ERR_NUM: Número incorrecto");
-            }
-            else if (esReal)
-            {
-                AgregarToken(lexema, "TK_NUM_DECIMAL", inicioLinea, inicioColumna);
-            }
-            else
-            {
-                AgregarToken(lexema, "TK_NUM_ENTERO", inicioLinea, inicioColumna);
-            }
-        }
-
-        private void LeerCadenaOCaracter(char delimitador)
-        {
-            int inicioLinea = lineaActual;
-            int inicioColumna = columnaActual;
-            StringBuilder sb = new StringBuilder();
-            sb.Append(delimitador);
-            posicion++;
-            columnaActual++;
-
-            bool cerrado = false;
-            while (posicion < codigoFuente.Length)
-            {
-                char actual = codigoFuente[posicion];
-                if (actual == '\n' || actual == '\r') break;
-
-                sb.Append(actual);
-                if (actual == delimitador)
+                // Verificar punto decimal
+                if (Peek() == '.' && indice + 1 < codigoFuente.Length && char.IsDigit(codigoFuente[indice + 1]))
                 {
-                    cerrado = true;
-                    posicion++;
-                    columnaActual++;
-                    break;
+                    esDecimal = true;
+                    lexema += Advance(); // Consumir el punto
+                    while (char.IsDigit(Peek()))
+                    {
+                        lexema += Advance();
+                    }
+
+                    // Regla de error numérico si hay múltiples puntos (ej. 3.14.15)
+                    if (Peek() == '.')
+                    {
+                        while (char.IsLetterOrDigit(Peek()) || Peek() == '.') lexema += Advance();
+                        ErroresDetectados.Add(new ErrorLexico(lexema, "Número real mal formado (ERR_NUM)", inicioLinea, inicioCol));
+                        continue;
+                    }
                 }
-                posicion++;
-                columnaActual++;
+
+                string tipoToken = esDecimal ? "TK_NUM_DECIMAL" : "TK_NUM_ENTERO";
+                TokensReconocidos.Add(new Token(lexema, tipoToken, inicioLinea, inicioCol));
+                continue;
             }
 
-            string lexema = sb.ToString();
-
-            if (!cerrado)
+            // 5. Cadenas de caracteres ("...")
+            if (actual == '"')
             {
-                AgregarError(lexema, "ERR_CADENA: Cadena no cerrada");
-            }
-            else
-            {
-                string tipo = (delimitador == '"') ? "TK_CADENA" : "TK_CARACTER";
-                AgregarToken(lexema, tipo, inicioLinea, inicioColumna);
-            }
-        }
+                int inicioCol = columna;
+                int inicioLinea = linea;
+                string lexema = "";
+                lexema += Advance(); // Consumir comilla de apertura
+                bool cerrada = false;
 
-        private void LeerComentarioLinea()
-        {
-            int inicioLinea = lineaActual;
-            int inicioColumna = columnaActual;
-            StringBuilder sb = new StringBuilder();
-            sb.Append("//");
-            posicion += 2;
-            columnaActual += 2;
-
-            while (posicion < codigoFuente.Length && codigoFuente[posicion] != '\n')
-            {
-                sb.Append(codigoFuente[posicion]);
-                posicion++;
-                columnaActual++;
-            }
-
-            AgregarToken(sb.ToString(), "TK_COMENTARIO_LINEA", inicioLinea, inicioColumna);
-        }
-
-        private void LeerComentarioBloque()
-        {
-            int inicioLinea = lineaActual;
-            int inicioColumna = columnaActual;
-            StringBuilder sb = new StringBuilder();
-            sb.Append("/*");
-            posicion += 2;
-            columnaActual += 2;
-
-            bool cerrado = false;
-            while (posicion < codigoFuente.Length)
-            {
-                char actual = codigoFuente[posicion];
-                sb.Append(actual);
-
-                if (actual == '\n') { lineaActual++; columnaActual = 1; }
-                else { columnaActual++; }
-
-                if (actual == '*' && posicion + 1 < codigoFuente.Length && codigoFuente[posicion + 1] == '/')
+                while (indice < codigoFuente.Length)
                 {
-                    sb.Append('/');
-                    posicion += 2;
-                    columnaActual++;
-                    cerrado = true;
-                    break;
+                    char sig = Peek();
+                    if (sig == '\n' || sig == '\0')
+                    {
+                        break;
+                    }
+                    lexema += Advance();
+                    if (sig == '"')
+                    {
+                        cerrada = true;
+                        break;
+                    }
                 }
-                posicion++;
-            }
 
-            string lexema = sb.ToString();
-
-            if (!cerrado)
-            {
-                AgregarError(lexema, "ERR_COMENTARIO: Comentario de bloque sin cerrar");
-            }
-            else
-            {
-                AgregarToken(lexema, "TK_COMENTARIO_BLOQUE", inicioLinea, inicioColumna);
-            }
-        }
-
-        private void LeerOperadorOSimbolo()
-        {
-            int inicioLinea = lineaActual;
-            int inicioColumna = columnaActual;
-            char actual = codigoFuente[posicion];
-            string lexema = actual.ToString();
-            string tipo = "";
-
-            if (posicion + 1 < codigoFuente.Length)
-            {
-                char siguiente = codigoFuente[posicion + 1];
-                string posibleCompuesto = "" + actual + siguiente;
-
-                if (posibleCompuesto == "==" || posibleCompuesto == "!=" || posibleCompuesto == "<=" ||
-                    posibleCompuesto == ">=" || posibleCompuesto == "&&" || posibleCompuesto == "||" ||
-                    posibleCompuesto == "++" || posibleCompuesto == "--" || posibleCompuesto == "+=" ||
-                    posibleCompuesto == "-=" || posibleCompuesto == "*=" || posibleCompuesto == "/=")
+                if (!cerrada)
                 {
-                    lexema = posibleCompuesto;
-                    posicion++;
-                    columnaActual++;
+                    ErroresDetectados.Add(new ErrorLexico(lexema, "Cadena de caracteres no cerrada (ERR_CADENA)", inicioLinea, inicioCol));
                 }
+                else
+                {
+                    TokensReconocidos.Add(new Token(lexema, "TK_CADENA", inicioLinea, inicioCol));
+                }
+                continue;
             }
 
-            switch (lexema)
+            // 6. Operadores simples y compuestos
+            if ("+-*/%=<>!&|".IndexOf(actual) >= 0)
             {
-                case "+": case "-": case "*": case "/": case "%": tipo = "TK_OP_ARITMETICO"; break;
-                case "=": case "==": case "!=": case "<": case ">": case "<=": case ">=": tipo = "TK_OP_RELACIONAL"; break;
-                case "&&": case "||": case "!": tipo = "TK_OP_LOGICO"; break;
-                case "++": case "--": tipo = "TK_INCREMENTO_DECREMENTO"; break;
-                case "+=": case "-=": case "*=": case "/=": tipo = "TK_OP_ASIGNACION_COMPUESTA"; break;
-                case "(": case ")": case "{": case "}": case "[": case "]":
-                case ";": case ",": case ".": case ":": case "?": tipo = "TK_SIGNO_PUNTUACION"; break;
-                default: tipo = "TK_DESCONOCIDO"; break;
+                int inicioCol = columna;
+                int inicioLinea = linea;
+                string lexema = Advance().ToString();
+                char sig = Peek();
+
+                if ((lexema == "+" && (sig == '+' || sig == '=')) ||
+                    (lexema == "-" && (sig == '-' || sig == '=')) ||
+                    (lexema == "*" && sig == '=') ||
+                    (lexema == "/" && sig == '=') ||
+                    (lexema == "=" && sig == '=') ||
+                    (lexema == "!" && sig == '=') ||
+                    (lexema == "<" && sig == '=') ||
+                    (lexema == ">" && sig == '=') ||
+                    (lexema == "&" && sig == '&') ||
+                    (lexema == "|" && sig == '|'))
+                {
+                    lexema += Advance();
+                }
+
+                TokensReconocidos.Add(new Token(lexema, "TK_OPERADOR", inicioLinea, inicioCol));
+                continue;
             }
 
-            AgregarToken(lexema, tipo, inicioLinea, inicioColumna);
-            posicion++;
-            columnaActual++;
-        }
+            // 7. Signos de puntuación
+            if ("(){}[],.;:?".IndexOf(actual) >= 0)
+            {
+                TokensReconocidos.Add(new Token(Advance().ToString(), "TK_PUNTUACION", linea, columna - 1));
+                continue;
+            }
 
-        private bool VerificarSiguiente(char c)
-        {
-            return posicion + 1 < codigoFuente.Length && codigoFuente[posicion + 1] == c;
-        }
-
-        private bool EsSimboloValido(char c)
-        {
-            string simbolos = "(){}[];,. :?+-*/%=<>!&|";
-            return simbolos.Contains(c);
-        }
-
-        private void AgregarToken(string lexema, string tipo, int linea, int columna)
-        {
-            TokensReconocidos.Add(new Token(lexema, tipo, linea, columna));
-        }
-
-        private void AgregarError(string texto, string descripcion)
-        {
-            ErroresDetectados.Add(new ErrorLexico(texto, descripcion, lineaActual, columnaActual));
+            // 8. Manejo de Caracteres Inválidos (ERR_CAR)
+            {
+                int inicioCol = columna;
+                int inicioLinea = linea;
+                string caracterInvalido = Advance().ToString();
+                ErroresDetectados.Add(new ErrorLexico(caracterInvalido, "Carácter no permitido en el lenguaje (ERR_CAR)", inicioLinea, inicioCol));
+            }
         }
     }
 }
