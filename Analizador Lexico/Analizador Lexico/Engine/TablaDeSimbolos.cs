@@ -1,6 +1,8 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
 using AnalizadorLexico.Models;
+using System.Collections.Generic;
 
 namespace AnalizadorLexico.Engine
 {
@@ -8,29 +10,42 @@ namespace AnalizadorLexico.Engine
     {
         private SimboloTabla[] arregloSimbolos;
         private int contadorSimbolos;
-        private string[] palabrasReservadas;
+        private Dictionary<string, string> palabrasReservadas;
 
         public TablaDeSimbolos()
         {
             arregloSimbolos = new SimboloTabla[1000];
             contadorSimbolos = 0;
 
-            palabrasReservadas = new string[]
+            palabrasReservadas = new Dictionary<string, string>();
+
+            CargarPalabrasReservadas();  
+        }
+
+        private void CargarPalabrasReservadas() 
+        {
+            string ruta = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Diccionario.txt");
+
+            if (File.Exists(ruta))
             {
-                "using", "namespace", "class", "public", "private", "protected",
-                "static", "void", "int", "double", "float", "string", "bool",
-                "if", "else", "while", "for", "return", "new", "true", "false"
-            };
+                string[] palabras = File.ReadAllLines(ruta);
+
+                foreach (string palabra in palabras) 
+                {
+                    string palabraLimpia = palabra.Trim();
+
+                    if (palabraLimpia != "") 
+                    {
+                        palabrasReservadas[palabraLimpia] = "PALABRA_RESERVADA";
+                    
+                    } 
+                }
+            }
         }
 
         public bool EsPalabraReservada(string lexema)
         {
-            for (int i = 0; i < palabrasReservadas.Length; i++)
-            {
-                if (palabrasReservadas[i] == lexema)
-                    return true;
-            }
-            return false;
+            return palabrasReservadas.ContainsKey(lexema);    
         }
 
         public void AgregarOActualizar(string nombre, string tipoToken, int linea, int columna)
